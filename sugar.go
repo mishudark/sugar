@@ -23,8 +23,39 @@
 
 package sugar
 
-/* Simple tuple */
+import (
+	"strings"
+)
+
+const Separator = "/"
+
+// Trivial tuple
 type Tuple map[string]interface{}
 
-/* Simple list */
+// Trivial list
 type List []interface{}
+
+func getPath(genmap map[string]interface{}, path string) interface{} {
+	chunks := strings.Split(path, Separator)
+
+	switch len(chunks) {
+	case 0:
+		return nil
+	case 1:
+		return genmap[chunks[0]]
+	default:
+		switch genmap[chunks[0]].(type) {
+		case map[string]interface{}:
+			return getPath(genmap[chunks[0]].(map[string]interface{}), strings.Join(chunks[1:], Separator))
+		default:
+			return nil
+		}
+	}
+
+	return nil
+}
+
+// Digs deeper in a sugar.Tuple{}, useful when dealing with JSON.
+func (self *Tuple) Get(path string) interface{} {
+	return getPath(*self, path)
+}
