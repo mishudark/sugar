@@ -24,6 +24,7 @@
 package sugar
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -35,18 +36,20 @@ type Tuple map[string]interface{}
 // Trivial list
 type List []interface{}
 
-func getPath(genmap map[string]interface{}, path string) interface{} {
+func getPath(tmap map[string]interface{}, path string) interface{} {
 	chunks := strings.Split(path, Separator)
 
 	switch len(chunks) {
 	case 0:
 		return nil
 	case 1:
-		return genmap[chunks[0]]
+		return tmap[chunks[0]]
 	default:
-		switch genmap[chunks[0]].(type) {
+		switch tmap[chunks[0]].(type) {
 		case map[string]interface{}:
-			return getPath(genmap[chunks[0]].(map[string]interface{}), strings.Join(chunks[1:], Separator))
+			return getPath(tmap[chunks[0]].(map[string]interface{}), strings.Join(chunks[1:], Separator))
+		case Tuple:
+			return getPath(tmap[chunks[0]].(Tuple), strings.Join(chunks[1:], Separator))
 		default:
 			return nil
 		}
@@ -55,7 +58,37 @@ func getPath(genmap map[string]interface{}, path string) interface{} {
 	return nil
 }
 
-// Digs deeper in a sugar.Tuple{}, useful when dealing with JSON.
+func setPath(tmap map[string]interface{}, path string, value interface{}) error {
+	chunks := strings.Split(path, Separator)
+
+	switch len(chunks) {
+	case 0:
+		return fmt.Errorf("No map provided.")
+	case 1:
+		delete(tmap, chunks[0])
+		tmap[chunks[0]] = value
+	default:
+		switch tmap[chunks[0]].(type) {
+		case map[string]interface{}:
+			return setPath(tmap[chunks[0]].(map[string]interface{}), strings.Join(chunks[1:], Separator), value)
+		case Tuple:
+			return setPath(tmap[chunks[0]].(Tuple), strings.Join(chunks[1:], Separator), value)
+		default:
+			delete(tmap, chunks[0])
+			tmap[chunks[0]] = map[string]interface{}{}
+			return setPath(tmap[chunks[0]].(map[string]interface{}), strings.Join(chunks[1:], Separator), value)
+		}
+	}
+
+	return nil
+}
+
+// Digs into a sugar.Tuple{} and returns a value.
 func (self *Tuple) Get(path string) interface{} {
 	return getPath(*self, path)
+}
+
+// Digs into a sugar.Tuple{} and sets a value.
+func (self *Tuple) Set(path string, value interface{}) error {
+	return setPath(*self, path, value)
 }
