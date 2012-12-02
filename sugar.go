@@ -92,3 +92,33 @@ func (self *Tuple) Get(path string) interface{} {
 func (self *Tuple) Set(path string, value interface{}) error {
 	return setPath(*self, path, value)
 }
+
+//Add element at List ends
+//List.push(item)
+func (self *List) push(data interface{}){
+  l := len(*self)
+  l_total := l
+  if l+1 > cap(*self){
+    l_total++
+  }
+
+  newList := make(List, l_total)
+  newList[l] = data
+
+  copy(newList, *self)
+  *self = newList
+}
+
+//Delete last element in a List
+//List.pop()
+func (self *List) pop(){
+  l := len(*self)
+  if l < 1{
+    return
+  }
+
+  newList := make(List, l-1)
+  copy(newList, *self)
+
+  *self = newList
+}
